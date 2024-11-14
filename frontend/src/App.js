@@ -2,7 +2,7 @@ import React from 'react';
 import { WebSocketProvider } from './context/WebSocketContext';
 import { ThemeProvider } from './context/theme';
 import WorkoutForm from './components/WorkoutForm';
-import WorkoutList from './components/WorkoutList';
+import WorkoutList from './components/WorkoutDetails';
 
 const App = () => {
   return (

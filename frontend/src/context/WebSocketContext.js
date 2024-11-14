@@ -15,14 +15,26 @@ export const WebSocketProvider = ({ children }) => {
 
     ws.onopen = () => {
       console.log('Connected to WebSocket server');
+      // Request all workouts when connection is established
       ws.send(JSON.stringify({ type: 'GET_ALL_WORKOUTS' }));
     };
 
     ws.onmessage = (message) => {
-      const data = JSON.parse(message.data);
-      // Handle received messages
+      try {
+        const data = JSON.parse(message.data);
+
+        // Handle different types of messages
+        if (data.type === 'ALL_WORKOUTS') {
+          // Update the workouts state with data received from the WebSocket
+          setWorkouts(data.workouts);
+        }
+        // Add more conditions here if you handle other message types
+      } catch (error) {
+        console.error('Error parsing WebSocket message:', error);
+      }
     };
 
+    // Cleanup function to close the WebSocket when the component unmounts
     return () => {
       ws.close();
     };

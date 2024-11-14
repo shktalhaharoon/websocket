@@ -1,44 +1,72 @@
-const express = require("express");
-const mongoose = require("mongoose");
-const dotenv = require("dotenv");
-const { WebSocketServer } = require("ws");
-const workoutRoutes = require("./routes/workouts");
-const webSocketHandler = require("./webSocketHandler");
+const express = require('express');
+const http = require('http');
+const { Server } = require('socket.io');
+const mongoose = require('mongoose');
+const cors = require('cors');
+require('dotenv').config();
 const path = require("path");
-
-dotenv.config();
-
+// Express app
 const app = express();
-const port = process.env.PORT || 8000;
+const server = http.createServer(app); // Create HTTP server for WebSockets
 
-// Middleware to parse JSON requests
+// Middleware
 app.use(express.json());
 
-// Logging middleware
+// Step 1: Enable CORS for your Express app
+app.use(cors({
+  origin: 'http://localhost:3000', // Replace with your frontend URL
+  methods: ['GET', 'POST']
+}));
+
+// Routes
+const workoutRoutes = require('./routes/workouts');
+
+// Middleware for logging
 app.use((req, res, next) => {
   console.log(req.path, req.method);
   next();
 });
 
-// REST API routes (optional if you still need them)
-app.use("/api/workouts", workoutRoutes);
+// Use the workout routes
+app.use('/api/workouts', workoutRoutes);
 
-// MongoDB connection
-mongoose
-  .connect(process.env.MONG_URI)
-  .then(() => console.log("Connected to MongoDB"))
-  .catch((error) => console.log("Database connection error:", error));
-
-// Start HTTP server for WebSocket server integration
-const server = app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
+// Step 2: Set up Socket.IO with CORS handling
+const io = new Server(server, {
+  cors: {
+    origin: 'http://localhost:3000', // Allow frontend URL
+    methods: ['GET', 'POST']
+  }
 });
 
-// Initialize WebSocket server on the same HTTP server
-const wss = new WebSocketServer({ server });
-webSocketHandler(wss);
+// Step 3: WebSocket logic
+io.on('connection', (socket) => {
+  console.log('Client connected via WebSocket');
 
-console.log("WebSocket server is set up and ready for connections.");
+  // Handle incoming messages
+  socket.on('message', (data) => {
+    console.log('Received:', data);
+    // Emit a response message back to the client
+    socket.emit('message', `Server received: ${data}`);
+  });
 
-// Import and initialize the cron job
+  // Cleanup on disconnect
+  socket.on('disconnect', () => {
+    console.log('Client disconnected');
+  });
+});
+
+// Connect to MongoDB
+mongoose.connect(process.env.MONG_URI)
+  .then(() => {
+    console.log('Connected to database');
+  })
+  .catch((error) => {
+    console.log(error);
+  });
+
+// Step 4: Listen on your desired port
+const PORT = process.env.PORT || 8000;
+server.listen(PORT, () => {
+  console.log(`Server is listening on port ${PORT}`);
+});
 require("./cron");

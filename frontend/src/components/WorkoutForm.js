@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useWebSocket } from '../context/WebSocketContext';
 
 const WorkoutForm = () => {
@@ -6,7 +6,6 @@ const WorkoutForm = () => {
   const [title, setTitle] = useState('');
   const [load, setLoad] = useState('');
   const [reps, setReps] = useState('');
-  const [error, setError] = useState(null);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -16,8 +15,6 @@ const WorkoutForm = () => {
       setTitle('');
       setLoad('');
       setReps('');
-    } else {
-      setError('WebSocket is not connected');
     }
   };
 
@@ -30,7 +27,6 @@ const WorkoutForm = () => {
       <label>Reps:</label>
       <input type="number" value={reps} onChange={(e) => setReps(e.target.value)} />
       <button type="submit">Add Workout</button>
-      {error && <div className="error">{error}</div>}
     </form>
   );
 };

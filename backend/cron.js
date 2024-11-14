@@ -1,35 +1,35 @@
-const cron = require('node-cron');
+// backend/cron.js
+require('dotenv').config(); // Load environment variables
 const nodemailer = require('nodemailer');
+const { CronJob } = require('cron');
 
-// Create a reusable transporter object using SMTP transport
-const transporter = nodemailer.createTransport({
-  service: 'gmail',  // You can use other services like 'hotmail', 'yahoo', etc.
-  auth: {
-    user: process.env.EMAIL_USER, // Your email address
-    pass: process.env.EMAIL_PASS  // Your email password or an app password
+// Create a cron job that runs daily at 8:00 AM
+const job = new CronJob('* * * * *', async () => {
+  try {
+    // Configure the email transporter using nodemailer
+    const transporter = nodemailer.createTransport({
+      service: 'gmail', // Using Gmail for this example, change if necessary
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+    });
+
+    // Set up the email details
+    const mailOptions = {
+      from: process.env.EMAIL_USER, // Sender's email address
+      to: 'recipient-email@example.com', // Receiver's email address
+      subject: 'Daily Email', // Subject of the email
+      text: 'This is your daily email from your MERN app!', // Body content
+    };
+
+    // Send the email
+    await transporter.sendMail(mailOptions);
+    console.log('Daily email sent!');
+  } catch (error) {
+    console.error('Error sending email:', error);
   }
 });
 
-// Function to send email
-function sendEmail() {
-  const mailOptions = {
-    from: process.env.EMAIL_USER,
-    to: 'gymbuddy@gmail.com',  // Replace with the recipient's email address
-    subject: 'UPDATED WORKOUTS',
-    text: 'MESSAGE FROM YOUR MERN STACK APP!'
-  };
-
-  transporter.sendMail(mailOptions, (error, info) => {
-    if (error) {
-      return console.log('Error sending email:', error);
-    }
-    console.log('Email sent: ' + info.response);
-  });
-}
-
-// Set up the cron job to run daily (every 24 hours)
-cron.schedule('0 * * * *', () => {
-  console.log('Cron job running to send daily email...');
-  sendEmail();
-});
-
+// Start the cron job
+job.start();

@@ -2,7 +2,6 @@ import { createContext, useContext, useState, useEffect } from 'react';
 
 const WebSocketContext = createContext(null);
 
-// This is the hook that allows components to use the WebSocket context
 export const useWebSocket = () => useContext(WebSocketContext);
 
 export const WebSocketProvider = ({ children }) => {
@@ -10,7 +9,8 @@ export const WebSocketProvider = ({ children }) => {
   const [workouts, setWorkouts] = useState([]);
 
   useEffect(() => {
-    const ws = new WebSocket('ws://localhost:8000'); // Replace with your WebSocket server URL
+    // Connect to WebSocket server
+    const ws = new WebSocket('ws://localhost:8000');
     setSocket(ws);
 
     ws.onopen = () => {
@@ -20,19 +20,7 @@ export const WebSocketProvider = ({ children }) => {
 
     ws.onmessage = (message) => {
       const data = JSON.parse(message.data);
-      switch (data.type) {
-        case 'ALL_WORKOUTS':
-          setWorkouts(data.data);
-          break;
-        case 'NEW_WORKOUT':
-          setWorkouts((prev) => [data.data, ...prev]);
-          break;
-        case 'DELETE_WORKOUT':
-          setWorkouts((prev) => prev.filter((w) => w._id !== data.data._id));
-          break;
-        default:
-          console.error('Unknown message type:', data.type);
-      }
+      // Handle received messages
     };
 
     return () => {

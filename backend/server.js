@@ -6,55 +6,19 @@ const cors = require('cors');
 require('dotenv').config();
 const path = require("path");
 const app = express();
-const server = http.createServer(app); 
+const server = http.createServer(app);
 
+// Import the WebSocket handler for workout events
+const handleWorkoutEvents = require('./webSocketHandler');
 
 app.use(express.json());
-
 
 app.use(cors({
   origin: 'http://localhost:3000',
   methods: ['GET', 'POST']
 }));
 
-
-const workoutRoutes = require('./routes/workouts');
-
-
-app.use((req, res, next) => {
-  console.log(req.path, req.method);
-  next();
-});
-
-
-app.use('/api/workouts', workoutRoutes);
-
-
-const io = new Server(server, {
-  cors: {
-    origin: 'http://localhost:3000',
-    methods: ['GET', 'POST','DELETE','UPDATE']
-  }
-});
-
-
-io.on('connection', (socket) => {
-  console.log('Client connected via WebSocket');
-
-
-  socket.on('message', (data) => {
-    console.log('Received:', data);
-  
-    socket.emit('message', `Server received: ${data}`);
-  });
-
- 
-  socket.on('disconnect', () => {
-    console.log('Client disconnected');
-  });
-});
-
-
+// Database Connection
 mongoose.connect(process.env.MONG_URI)
   .then(() => {
     console.log('Connected to database');
@@ -63,9 +27,31 @@ mongoose.connect(process.env.MONG_URI)
     console.log(error);
   });
 
+// Setting up WebSocket Server
+const io = new Server(server, {
+  cors: {
+    origin: 'http://localhost:3000',
+    methods: ['GET', 'POST', 'DELETE', 'UPDATE']
+  }
+});
 
+// Handle WebSocket connections
+io.on('connection', (socket) => {
+  console.log('Client connected via WebSocket');
+  
+  // Attach workout event handlers to the socket
+  handleWorkoutEvents(socket);
+
+  // Handle client disconnection
+  socket.on('disconnect', () => {
+    console.log('Client disconnected');
+  });
+});
+
+// Start the server
 const PORT = process.env.PORT || 8000;
 server.listen(PORT, () => {
   console.log(`Server is listening on port ${PORT}`);
 });
+
 require("./cron");

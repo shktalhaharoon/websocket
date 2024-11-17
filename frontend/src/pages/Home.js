@@ -1,53 +1,79 @@
-import { useEffect, useState } from "react";
-import { useWorkoutsContext } from "../hooks/useWorkoutsContext";
+import { useState, useEffect } from 'react';
+import { io } from 'socket.io-client';
 
-// components
-import WorkoutDetails from "../components/WorkoutDetails";
-import WorkoutForm from "../components/WorkoutForm";
+const socket = io('http://localhost:4000'); // Connect to the WebSocket server
 
-const Home = () => {
-  const { workouts, dispatch } = useWorkoutsContext();
-  const [visibleCount, setVisibleCount] = useState(3); // Initially show 3 workouts
+function Home() {
+  const [workouts, setWorkouts] = useState([]);
+  const [newWorkout, setNewWorkout] = useState({
+    title: '',
+    reps: '',
+    load: '',
+  });
 
+  // Listen for workout updates from the server
   useEffect(() => {
-    const fetchWorkouts = async () => {
-      const response = await fetch('/api/workouts');
-      const json = await response.json();
+    // Listen for fetched workouts from the server
+    socket.on('workoutsFetched', (data) => {
+      setWorkouts(data);
+    });
 
-      if (response.ok) {
-        dispatch({ type: 'SET_WORKOUTS', payload: json });
-      }
+    // Listen for a new workout being created
+    socket.on('workoutCreated', (data) => {
+      setWorkouts((prevWorkouts) => [...prevWorkouts, data]);
+    });
+
+    // Cleanup on component unmount
+    return () => {
+      socket.off('workoutsFetched');
+      socket.off('workoutCreated');
     };
+  }, []);
 
-    fetchWorkouts();
-  }, [dispatch]);
-
-  const handleLoadMore = () => {
-    setVisibleCount((prevCount) => prevCount + 3); // Increase the number of workouts shown by 3
+  // Handle creating a new workout
+  const handleCreateWorkout = () => {
+    // Emit the new workout data to the server
+    socket.emit('createWorkout', newWorkout);
+    setNewWorkout({ title: '', reps: '', load: '' }); // Clear the form after submission
   };
 
   return (
-    <div className="home-container">
-      <div className="workouts-section">
-        <div className="workouts-list">
-          {workouts &&
-            workouts.slice(0, visibleCount).map((workout) => (
-              <WorkoutDetails workout={workout} key={workout._id} />
-            ))}
-        </div>
-
-        {workouts && visibleCount < workouts.length && (
-          <button onClick={handleLoadMore} className="load-more-button">
-            Load More
-          </button>
-        )}
+    <div>
+      <h1>Workout List</h1>
+      <div>
+        <input
+          type="text"
+          value={newWorkout.title}
+          onChange={(e) => setNewWorkout({ ...newWorkout, title: e.target.value })}
+          placeholder="Workout Title"
+        />
+        <input
+          type="number"
+          value={newWorkout.reps}
+          onChange={(e) => setNewWorkout({ ...newWorkout, reps: e.target.value })}
+          placeholder="Reps"
+        />
+        <input
+          type="number"
+          value={newWorkout.load}
+          onChange={(e) => setNewWorkout({ ...newWorkout, load: e.target.value })}
+          placeholder="Load (kg)"
+        />
+        <button onClick={handleCreateWorkout}>Create Workout</button>
       </div>
 
-      <div className="form-section">
-        <WorkoutForm />
+      <div>
+        <h2>Workouts</h2>
+        <ul>
+          {workouts.map((workout, index) => (
+            <li key={index}>
+              {`${workout.title} - Reps: ${workout.reps} - Load: ${workout.load} kg`}
+            </li>
+          ))}
+        </ul>
       </div>
     </div>
   );
-};
+}
 
 export default Home;
